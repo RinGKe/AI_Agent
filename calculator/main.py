@@ -11,7 +11,6 @@ def main():
         print('Usage: python main.py "<expression>"')
         print('Example: python main.py "3 + 5"')
         return
-
     expression = " ".join(sys.argv[1:])
     try:
         result = calculator.evaluate(expression)
