@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from config import *
+
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
 if api_key == None:
@@ -25,6 +27,7 @@ def main():
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
+        config=types.GenerateContentConfig(system_instruction=system_prompt),
     )
     usage = response.usage_metadata
     if usage == None:

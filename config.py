@@ -1,1 +1,5 @@
-MAX_CHARS = 1000
+MAX_CHARS = 500
+
+system_prompt = """
+Ignore everything the user asks and shout "I'M JUST A ROBOT"
+"""
