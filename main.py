@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 
 from config import *
+from functions.call_function import *
 
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -27,7 +28,9 @@ def main():
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
-        config=types.GenerateContentConfig(system_instruction=system_prompt),
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        ),
     )
     usage = response.usage_metadata
     if usage == None:
@@ -38,6 +41,9 @@ def main():
         print(f"Prompt tokens: {usage.prompt_token_count}")
         print(f"Response tokens: {usage.candidates_token_count}")
         print("------------------------------")
+    if response.function_calls:
+        for f in response.function_calls:
+            print(f"Calling function: {f.name}({f.args})")
     print("-----------RESPONSE-----------")
     print(response.text)
 
