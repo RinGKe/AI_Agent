@@ -1,5 +1,7 @@
 import os
 
+from google.genai import types
+
 from config import *
 
 
@@ -20,3 +22,23 @@ def get_file_content(working_directory, file_path, size=MAX_CHARS):
 
     except Exception as e:
         return f"Error listing files: {e}"
+
+
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description="Reads the content of a file with an optional character limit",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Directory path to the file to pull text content from, relative to the working directory (default is the working directory itself)",
+            ),
+            "size": types.Schema(
+                type=types.Type.INTEGER,
+                description="Optional character limit for large files",
+            ),
+        },
+        required=["file_path"],
+    ),
+)

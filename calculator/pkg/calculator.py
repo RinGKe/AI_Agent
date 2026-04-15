@@ -17,37 +17,52 @@ class Calculator:
         if not expression or expression.isspace():
             return None
         tokens = expression.strip().split()
-        return self._evaluate_infix(tokens)
+        output_queue = []
+        operator_stack = []
 
-    def _evaluate_infix(self, tokens):
-        values = []
-        operators = []
-        for token in tokens:
-            if token in self.operators:
-                while (
-                    operators
-                    and operators[-1] in self.operators
-                    and self.precedence[operators[-1]] >= self.precedence[token]
-                ):
-                    self._apply_operator(operators, values)
-                operators.append(token)
+        i = 0
+        while i < len(tokens):
+            token = tokens[i]
+            if token.isdigit() or (token.startswith('-') and token[1:].isdigit()):
+                output_queue.append(float(token))
+            elif token in self.operators:
+                while (operator_stack and operator_stack[-1] != '(' and
+                       self.precedence.get(operator_stack[-1], 0) >= self.precedence.get(token, 0)):
+                    output_queue.append(operator_stack.pop())
+                operator_stack.append(token)
+            elif token == '(':
+                operator_stack.append(token)
+            elif token == ')':
+                while operator_stack and operator_stack[-1] != '(':
+                    output_queue.append(operator_stack.pop())
+                if operator_stack and operator_stack[-1] == '(':
+                    operator_stack.pop()
+                else:
+                    raise ValueError("Mismatched parentheses")
             else:
-                try:
-                    values.append(float(token))
-                except ValueError:
-                    raise ValueError(f"invalid token: {token}")
-        while operators:
-            self._apply_operator(operators, values)
-        if len(values) != 1:
-            raise ValueError("invalid expression")
-        return values[0]
+                raise ValueError(f"Unknown token: {token}")
+            i += 1
 
-    def _apply_operator(self, operators, values):
-        if not operators:
-            return
-        operator = operators.pop()
-        if len(values) < 2:
-            raise ValueError(f"not enough operands for operator {operator}")
-        b = values.pop()
-        a = values.pop()
-        values.append(self.operators[operator](a, b))
+        while operator_stack:
+            if operator_stack[-1] == '(':
+                raise ValueError("Mismatched parentheses")
+            output_queue.append(operator_stack.pop())
+
+        return self._evaluate_rpn(output_queue)
+
+    def _evaluate_rpn(self, rpn_tokens):
+        operand_stack = []
+        for token in rpn_tokens:
+            if isinstance(token, float):
+                operand_stack.append(token)
+            else:
+                operator = token
+                if len(operand_stack) < 2:
+                    raise ValueError("Invalid RPN expression: not enough operands for operator")
+                b = operand_stack.pop()
+                a = operand_stack.pop()
+                result = self.operators[operator](a, b)
+                operand_stack.append(result)
+        if len(operand_stack) != 1:
+            raise ValueError("Invalid RPN expression: too many operands")
+        return operand_stack[0]

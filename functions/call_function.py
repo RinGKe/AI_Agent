@@ -1,78 +1,9 @@
 from google.genai import types
 
-schema_get_files_info = types.FunctionDeclaration(
-    name="get_files_info",
-    description="Lists files in a specified directory relative to the working directory, providing file size and directory status",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "directory": types.Schema(
-                type=types.Type.STRING,
-                description="Directory path to list files from, relative to the working directory (default is the working directory itself)",
-            ),
-        },
-        required=["directory"],
-    ),
-)
-
-schema_get_file_content = types.FunctionDeclaration(
-    name="get_file_content",
-    description="Reads the content of a file with an optional character limit",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="Directory path to the file to pull text content from, relative to the working directory (default is the working directory itself)",
-            ),
-            "size": types.Schema(
-                type=types.Type.INTEGER,
-                description="Optional character limit for large files",
-            ),
-        },
-        required=["file_path"],
-    ),
-)
-
-schema_run_python_file = types.FunctionDeclaration(
-    name="run_python_file",
-    description="Can run a python (.py) file with provided arguments",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="Directory path to the python file to run, relative to the working directory (default is the working directory itself)",
-            ),
-            "args": types.Schema(
-                type=types.Type.ARRAY,
-                items=types.Schema(type=types.Type.STRING),
-                description="Optional array or list of STRING arguments to run the python file with",
-            ),
-        },
-        required=["file_path"],
-    ),
-)
-
-schema_write_file = types.FunctionDeclaration(
-    name="write_file",
-    description="Used to overwrite a file with the provided text content",
-    parameters=types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "file_path": types.Schema(
-                type=types.Type.STRING,
-                description="Directory path to the file to write to, relative to the working directory (default is the working directory itself)",
-            ),
-            "content": types.Schema(
-                type=types.Type.STRING,
-                description="The text to write to the file",
-            ),
-        },
-        required=["file_path", "content"],
-    ),
-)
-
+from functions.get_file_content import *
+from functions.get_files_info import *
+from functions.run_python_file import *
+from functions.write_file import *
 
 available_functions = types.Tool(
     function_declarations=[
@@ -82,3 +13,44 @@ available_functions = types.Tool(
         schema_write_file,
     ]
 )
+
+function_map = {
+    "get_file_content": get_file_content,
+    "get_files_info": get_files_info,
+    "run_python_file": run_python_file,
+    "write_file": write_file,
+}
+
+
+def call_function(function_call, verbose=False):
+    print(
+        (f"Calling function: {function_call.name}({function_call.args})")
+        if verbose
+        else (f" - Calling function: {function_call.name}")
+    )
+
+    function_name = function_call.name or ""
+    args = dict(function_call.args) if function_call.args else {}
+    args["working_directory"] = "./calculator"
+
+    if function_name:
+        function_result = function_map[function_name](**args)
+        return types.Content(
+            role="tool",
+            parts=[
+                types.Part.from_function_response(
+                    name=function_name,
+                    response={"result": function_result},
+                )
+            ],
+        )
+
+    return types.Content(
+        role="tool",
+        parts=[
+            types.Part.from_function_response(
+                name=function_name,
+                response={"error": f"Unknown function: {function_name}"},
+            )
+        ],
+    )
